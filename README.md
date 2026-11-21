@@ -33,6 +33,7 @@ The **lexicon** wordmark in the top-left always returns to the Dictionary sectio
 - Results can be sorted by relevance, A–Z, or common first
 - `/` focuses the search field
 - `Esc` clears the search or closes the mobile entry sheet
+- When an entry is open, swipe left or right on a phone or tablet to move through the current result set. On desktop, translucent side arrows do the same, and the left/right arrow keys work when focus is not in a form control.
 
 Only headwords and recorded variants are indexed, so the initial index stays small enough for phones. Entry bodies are loaded lazily in 1,000-entry chunks.
 

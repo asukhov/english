@@ -402,12 +402,17 @@
           </ul>
           ${renderPagination(pages, page)}
         </div>
-        <article class="detail-card" id="detail-card-${tab}" aria-live="polite"></article>
+        <div class="detail-shell">
+          <article class="detail-card" id="detail-card-${tab}" aria-live="polite"></article>
+          <button class="word-nav word-nav-prev" type="button" data-word-nav="-1" aria-label="Previous word" title="Previous word">←</button>
+          <button class="word-nav word-nav-next" type="button" data-word-nav="1" aria-label="Next word" title="Next word">→</button>
+        </div>
       </div>`;
 
     wirePanelEvents(panel, tab);
     if (state.selected != null) await renderDetail(state.selected, requestId, tab);
     else $(`#detail-card-${tab}`).innerHTML = emptyDetail();
+    updateWordNavState(tab);
   }
 
   function wirePanelEvents(panel, tab) {
@@ -421,6 +426,9 @@
         state.page = next;
         renderLexicon(tab);
       });
+    });
+    $$('.word-nav', panel).forEach((button) => {
+      button.addEventListener('click', () => navigateWord(Number(button.dataset.wordNav)));
     });
     const searchAll = $('[data-action="search-all"]', panel);
     if (searchAll) {
@@ -447,6 +455,7 @@
     return `<div class="detail-topbar">
       <button class="back-button" type="button" data-action="close-detail">Back</button>
       <span class="detail-topbar-label">${esc(word)}</span>
+      <span class="swipe-hint" aria-hidden="true">Swipe ← →</span>
     </div>`;
   }
 
@@ -481,10 +490,43 @@
       button.classList.toggle('active', Number(button.dataset.index) === index);
     });
     renderDetail(index, state.requestId, tab);
+    updateWordNavState(tab);
     if (window.matchMedia('(max-width: 980px)').matches) {
       document.body.classList.add('detail-open');
       const detail = $(`#detail-card-${tab}`);
       if (detail) detail.scrollTop = 0;
+    }
+  }
+
+  function currentWordPosition() {
+    if (state.selected == null || !state.filtered.length) return -1;
+    return state.filtered.indexOf(state.selected);
+  }
+
+  function updateWordNavState(tab = state.tab) {
+    const panel = $(`#panel-${tab}`);
+    if (!panel) return;
+    const position = currentWordPosition();
+    const prev = $('.word-nav-prev', panel);
+    const next = $('.word-nav-next', panel);
+    if (prev) prev.disabled = position <= 0;
+    if (next) next.disabled = position < 0 || position >= state.filtered.length - 1;
+  }
+
+  async function navigateWord(delta) {
+    if (TAB_INFO[state.tab].type !== 'lexicon' || !state.filtered.length) return;
+    const position = currentWordPosition();
+    const nextPosition = Math.max(0, Math.min(state.filtered.length - 1, (position < 0 ? 0 : position) + delta));
+    if (position >= 0 && nextPosition === position) return;
+    const nextIndex = state.filtered[nextPosition];
+    if (nextIndex == null) return;
+    const nextPage = Math.floor(nextPosition / PER_PAGE) + 1;
+    state.selected = nextIndex;
+    if (nextPage !== state.page) {
+      state.page = nextPage;
+      await renderLexicon(state.tab);
+    } else {
+      selectRow(nextIndex, state.tab);
     }
   }
 
@@ -1117,6 +1159,39 @@
   }
 
   function bindEvents() {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchTracking = false;
+    document.addEventListener('touchstart', (event) => {
+      if (!document.body.classList.contains('detail-open')) return;
+      const card = event.target.closest('.detail-card');
+      if (!card || event.target.closest('button, a, input, textarea, select')) return;
+      const touch = event.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      touchTracking = true;
+    }, { passive: true });
+    document.addEventListener('touchend', (event) => {
+      if (!touchTracking) return;
+      touchTracking = false;
+      const touch = event.changedTouches[0];
+      const dx = touch.clientX - touchStartX;
+      const dy = touch.clientY - touchStartY;
+      if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+      navigateWord(dx < 0 ? 1 : -1);
+    }, { passive: true });
+    document.addEventListener('touchcancel', () => { touchTracking = false; }, { passive: true });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      if (event.target.closest('input, textarea, select, button, a, [role="tab"]')) return;
+      if (TAB_INFO[state.tab].type !== 'lexicon') return;
+      const detailVisible = document.body.classList.contains('detail-open') || window.matchMedia('(min-width: 981px)').matches;
+      if (!detailVisible) return;
+      event.preventDefault();
+      navigateWord(event.key === 'ArrowLeft' ? -1 : 1);
+    });
+
     const homeLink = $('#homeLink');
     if (homeLink) homeLink.addEventListener('click', (event) => { event.preventDefault(); goHome(); });
     el.searchForm.addEventListener('submit', (event) => {

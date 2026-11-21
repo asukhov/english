@@ -546,13 +546,19 @@ mark {
 
 /* ----------------------------------------------------------------- detail */
 
-.detail-card {
-  min-width: 0;
+.detail-shell {
   position: sticky;
   top: calc(var(--dock-height) + 16px);
+  align-self: start;
+  min-width: 0;
+}
+
+.detail-card {
+  min-width: 0;
   max-height: calc(100vh - var(--dock-height) - 32px);
   overflow-y: auto;
   overscroll-behavior: contain;
+  touch-action: pan-y;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
@@ -560,6 +566,37 @@ mark {
   padding: 28px 30px 30px;
   scrollbar-width: thin;
 }
+
+.word-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 54px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--ink-soft);
+  font-size: 17px;
+  line-height: 1;
+  opacity: 0.28;
+  transform: translateY(-50%);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.word-nav:hover:not(:disabled) {
+  opacity: 1;
+  background: #fff;
+}
+.word-nav:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+.word-nav-prev { left: -16px; }
+.word-nav-next { right: -16px; }
 
 .detail-topbar { display: none; }
 
@@ -1445,6 +1482,8 @@ td .ipa { color: var(--ink-soft); white-space: nowrap; }
 
 @media (max-width: 980px) {
   .layout { grid-template-columns: 1fr; }
+  .detail-shell { position: static; }
+  .word-nav { display: none; }
   .detail-card {
     position: fixed;
     inset: 0;
@@ -1452,7 +1491,7 @@ td .ipa { color: var(--ink-soft); white-space: nowrap; }
     max-height: none;
     border: 0;
     border-radius: 0;
-    padding: 0 20px 40px;
+    padding: 0 20px calc(40px + env(safe-area-inset-bottom));
     overflow-y: auto;
     display: none;
   }
@@ -1485,6 +1524,13 @@ td .ipa { color: var(--ink-soft); white-space: nowrap; }
     font-size: 11px;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .swipe-hint {
+    margin-left: auto;
+    flex: 0 0 auto;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.03em;
   }
 }
 
