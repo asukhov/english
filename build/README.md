@@ -19,11 +19,15 @@ The expected raw layout is `build/raw/` as consumed by `sources.py`.
 ## Commands
 
 ```bash
-python build/tools/fetch_idioms.py       # optional; populates build/cache
-python build/tools/build_lexicon_v2.py   # writes build/output/data/
+python build/tools/fetch_idioms.py         # optional; populates build/cache
+python build/tools/build_lexicon_v2.py     # writes build/output/data/
+python build/tools/gen_grammar.py          # writes data/grammar.json
+python build/tools/gen_illustrations.py    # writes data/illustrations.json
 ```
 
 Copy `build/output/data/` to `data/` after a rebuild, then bump both `DATA_VERSION` in `assets/app.js` and `VERSION` in `sw.js` so browsers cannot mix an old cached index with a new app shell.
+
+Grammar source content lives in `build/content/grammar-topics.json`; the generator adds the dictionary word-class tables and writes `data/grammar.json`. Illustration line art and part definitions live in `gen_illustrations.py`; the generated `data/illustrations.json` is what the site loads.
 
 ## Notes
 

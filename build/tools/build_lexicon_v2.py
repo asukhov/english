@@ -1429,7 +1429,7 @@ class Lexicon:
             ],
         }
         write_json(DATA / "meta.json", meta)
-        for fn in ("numbers-units.json", "pronunciation.json", "grammar.json", "common-phrases.json", "phrasal-verbs.json", "slang.json", "offensive.json", "function-words.json"):
+        for fn in ("numbers-units.json", "pronunciation.json", "grammar.json", "illustrations.json", "common-phrases.json", "phrasal-verbs.json", "slang.json", "offensive.json", "function-words.json"):
             src = ROOT / "data" / fn
             if src.exists():
                 shutil.copy2(src, DATA / fn)

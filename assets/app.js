@@ -2,7 +2,7 @@
   'use strict';
 
   const DATA = 'data';
-  const DATA_VERSION = '2026-11-21.113295';
+  const DATA_VERSION = '2026-11-22.1';
   const PER_PAGE = 30;
 
   const TAB_INFO = {
@@ -19,6 +19,12 @@
       desc: 'The controlled core of common English used as the foundation for explaining other words. Learn these first.',
       defaultSort: 'frequency',
       filter: (r) => r.flags.includes('d'),
+    },
+    illustrated: {
+      title: 'Illustrated words',
+      eyebrow: 'Visual dictionary',
+      desc: 'Clear, labelled diagrams of everyday things. Select a numbered part to learn its name, then open it in the dictionary.',
+      type: 'illustrated',
     },
     idioms: {
       title: 'Idioms & expressions',
@@ -107,6 +113,11 @@
     filtered: [],
     selected: null,
     refCache: new Map(),
+    grammarGroup: 'basics',
+    illustrations: null,
+    illustrationMap: new Map(),
+    illustrationSelected: 'umbrella',
+    illustrationTerm: '',
     loadingIndex: true,
     requestId: 0,
   };
@@ -445,6 +456,9 @@
       detail.innerHTML = renderEntry(entry);
       const back = $('[data-action="close-detail"]', detail);
       if (back) back.addEventListener('click', closeDetail);
+      $$('[data-illustration]', detail).forEach((button) => {
+        button.addEventListener('click', () => openIllustration(button.dataset.illustration, button.dataset.term));
+      });
     } catch (error) {
       console.error(error);
       detail.innerHTML = `<div class="empty-state"><div><h3>Could not load this entry</h3><p>${esc(error.message)}</p></div></div>`;
@@ -544,6 +558,18 @@
     }
     if (themes.length) {
       metaBlocks.push(`<div class="meta-block"><h3>Themes</h3><ul class="chip-list">${themes.map((theme) => `<li>${esc(theme)}</li>`).join('')}</ul></div>`);
+    }
+    const illustrationLinks = state.illustrationMap.get(entry.key) || [];
+    if (illustrationLinks.length) {
+      const unique = [];
+      const seen = new Set();
+      for (const link of illustrationLinks) {
+        const id = `${link.itemId}:${link.term}`;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        unique.push(link);
+      }
+      metaBlocks.push(`<div class="meta-block"><h3>Illustrated in</h3><ul class="chip-list">${unique.map((link) => `<li><button class="illustration-chip" type="button" data-illustration="${esc(link.itemId)}" data-term="${esc(link.term)}">${esc(link.itemTitle)} · ${esc(link.partLabel)}</button></li>`).join('')}</ul></div>`);
     }
     if (entry.separable != null) {
       metaBlocks.push(`<div class="meta-block"><h3>Separable</h3><p>${entry.separable ? 'Yes — the object can come between the verb and particle.' : 'Usually not separable.'}</p></div>`);
@@ -734,26 +760,96 @@
       </div>`;
   }
 
+  function renderGrammarRule(rule) {
+    const examples = (rule.examples || []).map((example) => `<li>${esc(example.text)}${example.note ? `<span class="example-note">${esc(example.note)}</span>` : ''}</li>`).join('');
+    return `<article class="grammar-rule">
+      <h4>${esc(rule.title)}</h4>
+      ${rule.pattern ? `<div class="rule-pattern">${esc(rule.pattern)}</div>` : ''}
+      <p>${esc(rule.explanation || '')}</p>
+      ${examples ? `<ul class="rule-examples">${examples}</ul>` : ''}
+      ${rule.mistake ? `<div class="rule-mistake"><strong>Common mistake:</strong> ${esc(rule.mistake)}</div>` : ''}
+    </article>`;
+  }
+
+  function renderTenseMap(tenseMap) {
+    if (!tenseMap) return '';
+    const periods = [['present', 'Present', '#d1d5db'], ['past', 'Past', '#9ca3af'], ['future', 'Future', '#4b5563']];
+    const circumference = 2 * Math.PI * 62;
+    const segment = circumference / 3;
+    const arcs = periods.map(([key, label, color], index) => `<circle cx="88" cy="88" r="62" fill="none" stroke="${color}" stroke-width="18" stroke-dasharray="${segment} ${circumference - segment}" stroke-dashoffset="${-segment * index}"/>`).join('');
+    const cells = periods.map(([key, label, color]) => `<div class="tense-column">
+      <h4><i class="tense-dot" style="background:${color}"></i>${label}</h4>
+      ${(tenseMap[key] || []).map((tense) => `<div class="tense-cell"><strong>${esc(tense.name)}</strong><span>${esc(tense.use || '')}</span></div>`).join('')}
+    </div>`).join('');
+    const legend = periods.map(([, label, color]) => `<span><i class="tense-dot" style="background:${color}"></i>${label}</span>`).join('');
+    return `<section class="ref-card">
+      <h3>Tense map</h3>
+      <p>The twelve English tenses combine three times with four aspects. Use this map as a quick index, then read the full entries below.</p>
+      <div class="tense-map">
+        <div class="tense-pie-wrap">
+          <div class="tense-pie" role="img" aria-label="English tenses grouped into present, past and future">
+            <svg viewBox="0 0 176 176" aria-hidden="true">
+              <circle cx="88" cy="88" r="62" fill="none" stroke="#f3f4f6" stroke-width="18"/>
+              ${arcs}
+            </svg>
+            <div class="tense-pie-center">12 tenses<small>English</small></div>
+          </div>
+          <div class="tense-legend">${legend}</div>
+        </div>
+        <div class="tense-grid">${cells}</div>
+      </div>
+    </section>`;
+  }
+
+  function renderGrammarGroup(data, group) {
+    if (!group) return '';
+    const sections = (group.sections || []).map((section) => `<section class="ref-card grammar-section">
+      <h3>${esc(section.title)}</h3>
+      ${section.intro ? `<p>${esc(section.intro)}</p>` : ''}
+      ${section.rules && section.rules.length ? `<div class="rule-grid">${section.rules.map(renderGrammarRule).join('')}</div>` : ''}
+      ${section.table ? renderTable(section.table.headers || [], (section.table.rows || []).map((row) => row.map((cell) => esc(cell)))) : ''}
+    </section>`).join('');
+    const wordClassSection = group.id === 'basics' ? `<section class="ref-card grammar-section">
+      <h3>Word classes used in this dictionary</h3>
+      ${renderTable(['Code', 'Word class', 'Summary', 'Examples', 'Notes'], (data.wordClasses || []).map((item) => [
+        `<strong>${esc(item.code)}</strong>`, esc(item.name), esc(item.summary), esc((item.examples || []).join(', ')), esc(item.notes || ''),
+      ]))}
+      <h3 style="margin-top:18px">Grammar codes in entries</h3>
+      ${renderTable(['Code', 'Meaning', 'Example'], (data.grammarCodes || []).map((item) => [`<strong>${esc(item.code)}</strong>`, esc(item.meaning), esc(item.example)]))}
+    </section>` : '';
+    return `${group.id === 'tenses' ? renderTenseMap(data.tenseMap) : ''}${sections}${wordClassSection}`;
+  }
+
   function renderGrammar(data) {
+    const groups = data.groups || [];
+    if (!groups.length) {
+      return `<div class="empty-state"><div><h3>Grammar reference unavailable</h3><p>The grammar data could not be loaded.</p></div></div>`;
+    }
+    let group = groups.find((entry) => entry.id === state.grammarGroup) || groups[0];
+    state.grammarGroup = group.id;
     return `
       <div class="section-head">
         <div>
           <p class="section-eyebrow">Reference</p>
-          <h1 class="section-title">Grammar codes</h1>
+          <h1 class="section-title">Grammar</h1>
           <p class="section-desc">${esc(data.intro || '')}</p>
         </div>
       </div>
-      <div class="ref-stack">
-        <section class="ref-card"><h3>Word classes</h3>
-          ${renderTable(['Code', 'Word class', 'Summary', 'Examples', 'Notes'], (data.wordClasses || []).map((item) => [
-            `<strong>${esc(item.code)}</strong>`, esc(item.name), esc(item.summary), esc((item.examples || []).join(', ')), esc(item.notes || ''),
-          ]))}
-        </section>
-        <section class="ref-card"><h3>Grammar codes in entries</h3>
-          ${renderTable(['Code', 'Meaning', 'Example'], (data.grammarCodes || []).map((item) => [`<strong>${esc(item.code)}</strong>`, esc(item.meaning), esc(item.example)]))}
-        </section>
-        ${(data.sections || []).map((section) => `<section class="ref-card"><h3>${esc(section.title)}</h3>${(section.body || []).map((paragraph) => `<p>${esc(paragraph)}</p>`).join('')}${section.examples ? `<div class="ref-grid">${section.examples.map((example) => `<div class="ref-tile"><h4>Example</h4><p>${esc(example.text)}</p>${example.note ? `<p><em>${esc(example.note)}</em></p>` : ''}</div>`).join('')}</div>` : ''}</section>`).join('')}
-      </div>`;
+      <nav class="grammar-tabs" aria-label="Grammar topics">
+        ${groups.map((entry) => `<button class="grammar-tab ${entry.id === group.id ? 'active' : ''}" type="button" data-grammar-group="${esc(entry.id)}">${esc(entry.title)}</button>`).join('')}
+      </nav>
+      <div class="ref-stack">${renderGrammarGroup(data, group)}</div>`;
+  }
+
+  function wireGrammarTabs(panel, data) {
+    $$('.grammar-tab', panel).forEach((button) => {
+      button.addEventListener('click', () => {
+        state.grammarGroup = button.dataset.grammarGroup;
+        panel.innerHTML = renderGrammar(data);
+        wireGrammarTabs(panel, data);
+        window.scrollTo({ top: panel.getBoundingClientRect().top + window.scrollY - 130, behavior: 'smooth' });
+      });
+    });
   }
 
   async function renderReference(tab) {
@@ -769,6 +865,7 @@
         panel.innerHTML = renderPronunciation(data);
       } else {
         panel.innerHTML = renderGrammar(data);
+        wireGrammarTabs(panel, data);
       }
     } catch (error) {
       console.error(error);
@@ -776,9 +873,181 @@
     }
   }
 
+  function buildIllustrationMap(data) {
+    const map = new Map();
+    for (const item of data.items || []) {
+      for (const part of item.parts || []) {
+        for (const name of [part.term, ...(part.aliases || [])]) {
+          const key = normalizeKey(name);
+          if (!key) continue;
+          if (!map.has(key)) map.set(key, []);
+          const list = map.get(key);
+          if (!list.some((entry) => entry.itemId === item.id && entry.term === part.term)) {
+            list.push({ itemId: item.id, itemTitle: item.title, partLabel: part.label || part.term, term: part.term });
+          }
+        }
+      }
+    }
+    return map;
+  }
+
+  async function renderIllustrated() {
+    const panel = $('#panel-illustrated');
+    const data = state.illustrations;
+    if (!data || !data.items || !data.items.length) {
+      panel.innerHTML = `<div class="empty-state"><div><h3>Illustrations are unavailable</h3><p>The visual dictionary data could not be loaded.</p></div></div>`;
+      return;
+    }
+    let selected = data.items.find((item) => item.id === state.illustrationSelected) || data.items[0];
+    state.illustrationSelected = selected.id;
+    panel.innerHTML = `
+      <div class="section-head">
+        <div>
+          <p class="section-eyebrow">Visual dictionary</p>
+          <h1 class="section-title">Illustrated words</h1>
+          <p class="section-desc">${esc(data.intro || '')}</p>
+        </div>
+        <span class="result-count">${data.items.length} illustrations</span>
+      </div>
+      <div class="illustration-layout">
+        <div class="illustration-index" aria-label="Illustrations">
+          ${data.items.map((item) => `<button class="illustration-card ${item.id === selected.id ? 'active' : ''}" type="button" data-item="${esc(item.id)}">
+            <span class="illustration-thumb" aria-hidden="true">${item.svg}</span>
+            <span class="illustration-card-title">${esc(item.title)}</span>
+            <span class="illustration-card-meta">${esc(item.category)} · ${item.parts.length} parts</span>
+          </button>`).join('')}
+        </div>
+        <div class="illustration-detail" id="illustration-detail"></div>
+      </div>`;
+
+    $$('.illustration-card', panel).forEach((button) => {
+      button.addEventListener('click', () => {
+        const item = data.items.find((entry) => entry.id === button.dataset.item);
+        if (!item) return;
+        state.illustrationSelected = item.id;
+        state.illustrationTerm = '';
+        $$('.illustration-card', panel).forEach((card) => card.classList.toggle('active', card === button));
+        renderIllustrationDetail(item);
+        if (window.matchMedia('(max-width: 980px)').matches) {
+          const detail = $('#illustration-detail');
+          if (detail) detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+    renderIllustrationDetail(selected);
+  }
+
+  function renderIllustrationDetail(item) {
+    const detail = $('#illustration-detail');
+    if (!detail) return;
+    const parts = item.parts || [];
+    detail.innerHTML = `
+      <div class="illustration-detail-head">
+        <div>
+          <p class="section-eyebrow">${esc(item.category)}</p>
+          <h2 class="illustration-title">${esc(item.title)}</h2>
+          <p class="section-desc">${esc(item.summary)}</p>
+        </div>
+      </div>
+      <div class="illustration-stage">
+        <div class="illustration-canvas" role="group" aria-label="${esc(item.title)} diagram">
+          ${item.svg}
+          ${parts.map((part, index) => `<button class="hotspot" type="button" style="left:${((part.x / 640) * 100).toFixed(2)}%;top:${((part.y / 420) * 100).toFixed(2)}%" data-part="${index}" aria-label="Show ${esc(part.label || part.term)}">${index + 1}</button>`).join('')}
+        </div>
+        <div class="parts-panel">
+          <h3 class="parts-title">Parts</h3>
+          <ol class="part-list">
+            ${parts.map((part, index) => `<li class="part-item" id="ill-${esc(item.id)}-${index}" data-part="${index}">
+              <div class="part-head">
+                <span class="part-number">${index + 1}</span>
+                <button class="part-name" type="button" data-focus="${index}">${esc(part.label || part.term)}${part.label && part.label !== part.term ? ` <small>${esc(part.term)}</small>` : ''}</button>
+              </div>
+              <p class="part-def">${esc(part.definition)}</p>
+              ${part.note ? `<p class="part-note">${esc(part.note)}</p>` : ''}
+              <button class="part-lookup" type="button" data-lookup="${esc(part.term)}">Look up “${esc(part.term)}”</button>
+            </li>`).join('')}
+          </ol>
+        </div>
+      </div>`;
+
+    const focusPart = (index, scroll = false) => {
+      $$('.hotspot', detail).forEach((dot) => dot.classList.toggle('active', Number(dot.dataset.part) === index));
+      $$('.part-item', detail).forEach((row) => row.classList.toggle('active', Number(row.dataset.part) === index));
+      if (scroll) {
+        const row = $(`#ill-${item.id}-${index}`, detail);
+        if (row) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    };
+
+    $$('.hotspot', detail).forEach((dot) => {
+      dot.addEventListener('click', () => focusPart(Number(dot.dataset.part), true));
+    });
+    $$('[data-focus]', detail).forEach((button) => {
+      button.addEventListener('click', () => focusPart(Number(button.dataset.focus), true));
+    });
+    $$('[data-lookup]', detail).forEach((button) => {
+      button.addEventListener('click', () => lookupWord(button.dataset.lookup));
+    });
+
+    const wanted = state.illustrationTerm;
+    if (wanted) {
+      const index = parts.findIndex((part) => [part.term, ...(part.aliases || [])].some((name) => normalizeKey(name) === wanted));
+      if (index >= 0) focusPart(index, true);
+      state.illustrationTerm = '';
+    }
+  }
+
+  function openIllustration(itemId, term = '') {
+    state.illustrationSelected = itemId;
+    state.illustrationTerm = normalizeKey(term);
+    if (state.tab === 'illustrated') {
+      renderIllustrated();
+    } else {
+      switchTab('illustrated');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function lookupWord(term) {
+    el.searchInput.value = term;
+    el.clearButton.hidden = false;
+    state.query = term;
+    state.page = 1;
+    state.selected = null;
+    if (state.tab === 'dictionary') {
+      renderLexicon('dictionary');
+    } else {
+      switchTab('dictionary', true);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function goHome() {
+    state.query = '';
+    el.searchInput.value = '';
+    el.clearButton.hidden = true;
+    state.page = 1;
+    state.selected = null;
+    state.illustrationTerm = '';
+    closeDetail();
+    if (state.tab === 'dictionary') {
+      state.sort = 'relevance';
+      history.replaceState(null, '', '#dictionary');
+      syncTabs();
+      renderLexicon('dictionary').catch((error) => {
+        console.error(error);
+        toast('Could not load the dictionary');
+      });
+    } else {
+      switchTab('dictionary');
+    }
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+  }
+
   async function renderCurrentTab() {
     const info = TAB_INFO[state.tab];
     if (info.type === 'reference') await renderReference(state.tab);
+    else if (info.type === 'illustrated') await renderIllustrated();
     else await renderLexicon(state.tab);
   }
 
@@ -820,7 +1089,7 @@
     const value = el.searchInput.value;
     state.query = value;
     el.clearButton.hidden = !value;
-    if (TAB_INFO[state.tab].type === 'reference') {
+    if (TAB_INFO[state.tab].type !== 'lexicon') {
       switchTab('dictionary', true);
       return;
     }
@@ -839,6 +1108,8 @@
   }
 
   function bindEvents() {
+    const homeLink = $('#homeLink');
+    if (homeLink) homeLink.addEventListener('click', (event) => { event.preventDefault(); goHome(); });
     el.searchForm.addEventListener('submit', (event) => {
       event.preventDefault();
       search();
@@ -846,7 +1117,7 @@
     });
     el.searchInput.addEventListener('input', () => {
       el.clearButton.hidden = !el.searchInput.value;
-      if (TAB_INFO[state.tab].type === 'reference') return;
+      if (TAB_INFO[state.tab].type !== 'lexicon') return;
       debouncedSearch();
     });
     el.clearButton.addEventListener('click', () => {
@@ -994,10 +1265,16 @@
     bindEvents();
     renderInitialSkeleton();
     try {
-      const [meta, chunks] = await Promise.all([getJSON(`${DATA}/meta.json`), getJSON(`${DATA}/chunks.json`)]);
+      const [meta, chunks, illustrations] = await Promise.all([
+        getJSON(`${DATA}/meta.json`),
+        getJSON(`${DATA}/chunks.json`),
+        getJSON(`${DATA}/illustrations.json`).catch(() => null),
+      ]);
       state.meta = meta;
       state.chunks = chunks;
       state.chunkSize = chunks.chunkSize || 1000;
+      state.illustrations = illustrations;
+      if (illustrations) state.illustrationMap = buildIllustrationMap(illustrations);
       await loadIndex();
       if (!Number.isFinite(meta.total) || !Number.isFinite(meta.idioms) || !Number.isFinite(meta.defining)) {
         throw new Error('The cached dictionary metadata is outdated.');

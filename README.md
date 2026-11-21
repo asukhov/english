@@ -12,18 +12,19 @@ There is no runtime build step, no package manager, no analytics, and no externa
 | Defining 3,000 | A curated core of **3,000** high-frequency words for learner-friendly explanation |
 | Idioms & expressions | **30,028** idioms, proverbs, phrasal expressions, and fixed phrases |
 | Phrasal verbs | **1,788** entries, including separability and particle notes |
+| Illustrated | **14 labelled diagrams** with **126 parts**: umbrella, bicycle, car, house, head, hand, tree, flower, laptop, guitar, shoe, bottle, camera, clock |
 | B2 / C1 / C2 | **8,292 / 13,065 / 86,762** entries by CEFR level |
 | Slang | **234** curated informal entries |
 | Strong language | **229** labelled swear words and insults (no group slurs) |
 | Numbers & units | Numbers, ordinals, dates, times, measurement units, and a unit converter |
 | Pronunciation | IPA chart, stress, connected speech, UK/US differences, minimal pairs |
-| Grammar | Word classes and the grammar codes used in entries |
+| Grammar | **12 topic groups, 38 sections, 103 rules** covering tenses, articles, modals, conditionals, passive, reported speech, at/on/in, clauses, punctuation and common mistakes |
 
 Every entry has an IPA transcription. Where a dictionary pronunciation was unavailable, a build-time eSpeak NG fallback was used and marked `ipa_auto` in the entry data; the entry page says when that applies. For multi-word entries the IPA is composed from word-level transcriptions, keeping citation forms clean.
 
 ## Search
 
-The search index is a compact TSV file loaded once and filtered in the browser.
+The **lexicon** wordmark in the top-left always returns to the Dictionary section and clears the current search. The search index is a compact TSV file loaded once and filtered in the browser.
 
 - `*` matches any sequence of letters: `*tion`, `look*`
 - `?` matches one letter: `col?r`
@@ -48,6 +49,8 @@ The interface is a single responsive layout with no framework:
 
 All fonts, icons, styles, scripts, and data are local. The only outbound links are attribution links in the About dialog, and the site makes no third-party requests at runtime.
 
+The Illustrated tab uses original inline SVG line art. Each numbered hotspot opens a part definition; part terms link back to the dictionary. Words that appear in a diagram also show an “Illustrated in” link inside their dictionary entry (for example, **rib** links to the umbrella diagram).
+
 ## Project layout
 
 ```
@@ -67,7 +70,8 @@ data/
   meta.json                counts and build metadata
   numbers-units.json       reference data
   pronunciation.json       reference data
-  grammar.json             reference data
+  grammar.json             grammar groups, rules and tense map
+  illustrations.json       labelled SVG diagrams and part vocabulary
 licenses/                  third-party notices
 ```
 

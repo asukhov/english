@@ -14,14 +14,14 @@
   <link rel="apple-touch-icon" href="assets/icon-180.png">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="assets/styles.css?v=2026-11-21.113295">
+  <link rel="stylesheet" href="assets/styles.css?v=2026-11-22.1">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
 
   <header class="topbar">
     <div class="topbar-inner">
-      <a class="wordmark" href="#" aria-label="Lexicon home">
+      <a class="wordmark" id="homeLink" href="#dictionary" aria-label="Lexicon home — go to the dictionary">
         <span class="wordmark-name">lexicon</span><span class="wordmark-dot" aria-hidden="true">.</span>
       </a>
       <span class="wordmark-sub">English</span>
@@ -67,6 +67,7 @@
       <div class="section-nav-inner" id="sectionNav" role="tablist" aria-label="Sections">
         <button class="nav-tab active" id="tab-dictionary" role="tab" aria-selected="true" aria-controls="panel-dictionary" data-tab="dictionary" type="button">Dictionary</button>
         <button class="nav-tab" id="tab-defining" role="tab" aria-selected="false" aria-controls="panel-defining" data-tab="defining" type="button">Defining 3,000</button>
+        <button class="nav-tab" id="tab-illustrated" role="tab" aria-selected="false" aria-controls="panel-illustrated" data-tab="illustrated" type="button">Illustrated</button>
         <button class="nav-tab" id="tab-idioms" role="tab" aria-selected="false" aria-controls="panel-idioms" data-tab="idioms" type="button">Idioms</button>
         <button class="nav-tab" id="tab-phrasal" role="tab" aria-selected="false" aria-controls="panel-phrasal" data-tab="phrasal" type="button">Phrasal verbs</button>
         <button class="nav-tab" id="tab-b2" role="tab" aria-selected="false" aria-controls="panel-b2" data-tab="b2" type="button">B2</button>
@@ -84,6 +85,7 @@
   <main id="main" class="main" tabindex="-1">
     <section id="panel-dictionary" class="panel active" role="tabpanel" aria-labelledby="tab-dictionary" data-panel="dictionary"></section>
     <section id="panel-defining" class="panel" role="tabpanel" aria-labelledby="tab-defining" data-panel="defining" hidden></section>
+    <section id="panel-illustrated" class="panel" role="tabpanel" aria-labelledby="tab-illustrated" data-panel="illustrated" hidden></section>
     <section id="panel-idioms" class="panel" role="tabpanel" aria-labelledby="tab-idioms" data-panel="idioms" hidden></section>
     <section id="panel-phrasal" class="panel" role="tabpanel" aria-labelledby="tab-phrasal" data-panel="phrasal" hidden></section>
     <section id="panel-b2" class="panel" role="tabpanel" aria-labelledby="tab-b2" data-panel="b2" hidden></section>
@@ -104,7 +106,8 @@
       </form>
     </div>
     <div class="about-body">
-      <p>A self-contained English-to-English dictionary. Every word, definition, font, and interface asset is stored in this repository. There are no analytics, trackers, or third-party requests at runtime.</p>
+      <p>A self-contained English-to-English dictionary. Every word, definition, diagram, font, and interface asset is stored in this repository. There are no analytics, trackers, or third-party requests at runtime.</p>
+      <p>The Grammar tab is a twelve-topic learner reference with 103 rules, comparison tables and a tense map. The Illustrated tab contains fourteen original SVG diagrams whose parts link back into the dictionary.</p>
       <dl class="about-stats" id="aboutStats">
         <div><dt>Entries</dt><dd>—</dd></div>
         <div><dt>Idioms &amp; expressions</dt><dd>—</dd></div>
@@ -129,6 +132,6 @@
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
-  <script src="assets/app.js?v=2026-11-21.113295" defer></script>
+  <script src="assets/app.js?v=2026-11-22.1" defer></script>
 </body>
 </html>
