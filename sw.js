@@ -1,5 +1,5 @@
 /* Lexicon service worker: offline shell + cached dictionary data. */
-const VERSION = 'lexicon-v15';
+const VERSION = 'lexicon-v17';
 const SHELL = [
   './',
   './index.html',
@@ -18,7 +18,11 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== VERSION).map((key) => caches.delete(key)))).then(() => self.clients.claim())
+    caches.keys().then(async (keys) => {
+      const stale = keys.filter((key) => key !== VERSION);
+      await Promise.all(stale.map((key) => caches.delete(key)));
+      await self.clients.claim();
+    })
   );
 });
 
