@@ -1,41 +1,76 @@
-English Lexicon - Third-party notices
+Lexicon — third-party notices
 
-This project is a self-contained static website. It includes or derives data from the
-following open sources. The project UI/code and original curated content are created for
-this repository; third-party source licenses remain with their respective owners.
+This project is a self-contained static website. Its UI, packaging, build scripts,
+and original curated content were created for this repository. The dictionary
+data is assembled from the open sources listed below. Third-party copyrights
+remain with their respective owners.
 
-1) Simple English Wiktionary content dump
-   - Source: https://dumps.wikimedia.org/simplewiktionary/
-   - License: Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
-   - Use in this project: learner-friendly definitions/examples/labels extracted and
-     normalized into JSON for dictionary entries.
+1) WordNet 3.0
+   - Source: Princeton WordNet, https://wordnet.princeton.edu/
+   - License: Princeton WordNet License (see WORDNET-LICENSE.txt)
+   - Use: broad English lemma coverage, definitions, examples, synonyms,
+     word classes, and fixed multiword expressions.
 
-2) WordNet 3.0
-   - Source: Princeton WordNet
-   - License: WordNet 3.0 License (see WORDNET-LICENSE.txt)
-   - Use in this project: fallback definitions, examples, and synonym data.
+2) Simple English Wiktionary
+   - Source: https://simple.wiktionary.org/
+   - Dump: https://dumps.wikimedia.org/simplewiktionary/
+   - License: Creative Commons Attribution-ShareAlike 4.0 International
+     (CC BY-SA 4.0), https://creativecommons.org/licenses/by-sa/4.0/
+   - Use: learner-friendly definitions, examples, labels, and pronunciation
+     for common words.
 
-3) Open IPA Dict (ipa-dict)
-   - Source: https://github.com/open-dict-data/ipa-dict
-   - License: MIT (see IPA-DICT-LICENSE.txt)
-   - Use in this project: UK/US IPA pronunciation data.
+3) English Wiktionary
+   - Source: https://en.wiktionary.org/
+   - License: Creative Commons Attribution-ShareAlike 4.0 International
+     (CC BY-SA 4.0), https://creativecommons.org/licenses/by-sa/4.0/
+   - Use: idioms, proverbs, phrasal verbs, fixed phrases, definitions,
+     examples, forms, and IPA.
 
-4) CEFR-J Vocabulary Profile 1.5
+4) Wiktextract / Kaikki.org English dictionary extracts
+   - Source: https://kaikki.org/dictionary/English/ and
+     https://github.com/tatuylonen/wiktextract
+   - Wiktextract software: MIT License.
+   - Extracted dictionary data: derived from English Wiktionary and therefore
+     distributed under CC BY-SA 4.0. Attribution to Wiktionary and Wiktextract.
+   - Use: machine-readable phrase, proverb, and prepositional-phrase entries,
+     including glosses, labels, forms, and IPA.
+   - Citation: Tatu Ylönen, "Wiktextract: Wiktionary as Machine-Readable
+     Structured Data", LREC 2022.
+
+5) CEFR-J Vocabulary Profile 1.5
    - Source: https://github.com/openlanguageprofiles/olp-en-cefrj
-   - Terms: CEFR-J data may be used for research/commercial purposes with citation;
-     copyright belongs to Tono Laboratory at TUFS. See source README for details.
-   - Use in this project: CEFR level labels and vocabulary selection signals.
+   - Terms: CEFR-J data may be used for research and commercial purposes with
+     citation; copyright belongs to the Tono Laboratory at TUFS.
+   - Use: CEFR level labels and vocabulary selection signals.
 
-5) Octanove Vocabulary Profile C1/C2 1.0
+6) Octanove Vocabulary Profile C1/C2 1.0
    - Source: https://github.com/openlanguageprofiles/olp-en-cefrj
    - License: CC BY-SA 4.0
-   - Use in this project: C1/C2 level labels and vocabulary selection signals.
+   - Use: C1/C2 level labels and vocabulary selection signals.
 
-6) Fraunces font
-   - SIL Open Font License 1.1 (see OFL-Fraunces.txt)
+7) Open IPA Dict (ipa-dict)
+   - Source: https://github.com/open-dict-data/ipa-dict
+   - License: MIT (see IPA-DICT-LICENSE.txt where included)
+   - Use: UK and US IPA transcriptions.
 
-7) Inter font
-   - SIL Open Font License 1.1 (see OFL-Inter.txt)
+8) eSpeak NG
+   - Source: https://github.com/espeak-ng/espeak-ng
+   - License: GNU General Public License v3.0.
+   - Use: build-time IPA generation for rare headwords that are absent from
+     the open pronunciation dictionaries. No eSpeak NG binary or data is
+     shipped with the website; only the generated IPA strings are included.
+     Entries using this fallback are marked "ipa_auto" in the data and note
+     the automatic pronunciation on the entry page.
 
-No proprietary dictionary text from Cambridge, Macmillan, Oxford, Longman, or
-Merriam-Webster was intentionally copied into this project.
+9) Inter typeface
+   - Source: https://rsms.me/inter/
+   - License: SIL Open Font License 1.1 (see OFL-Inter.txt)
+   - Use: local UI and text typeface.
+
+No proprietary dictionary text from Cambridge, Macmillan, Oxford, Longman,
+Merriam-Webster, or similar publishers was copied into this project.
+
+The dictionary data combines CC BY-SA 4.0 material. Redistribution of the
+data should retain attribution to the sources above and the CC BY-SA 4.0
+share-alike terms. The website code and original curation are provided as part
+of this repository.
