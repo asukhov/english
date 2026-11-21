@@ -1279,15 +1279,23 @@
     const total = Number(state.meta.total) || 0;
     const idioms = Number(state.meta.idioms) || 0;
     const defining = Number(state.meta.defining) || 0;
+    const themes = state.meta.themes || {};
+    const proverbs = Number(themes.proverb) || 0;
+    const phrasal = Number(themes.phrasal) || 0;
+    const illustrations = state.illustrations?.items?.length || 0;
     const values = [
       ['Entries', total],
       ['Idioms & expressions', idioms],
+      ['Proverbs', proverbs],
+      ['Phrasal verbs', phrasal],
       ['Defining vocabulary', defining],
+      ['Illustrated diagrams', illustrations],
+      ['Grammar rules', 103],
       ['IPA coverage', '100%'],
     ];
     el.aboutStats.innerHTML = values.map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${typeof value === 'number' ? value.toLocaleString() : esc(value)}</dd></div>`).join('');
     if (el.aboutMeta) {
-      el.aboutMeta.textContent = `Built ${state.meta.generated || ''} · ${total.toLocaleString()} headwords · ${idioms.toLocaleString()} idioms and expressions · ${defining.toLocaleString()} defining words.`;
+      el.aboutMeta.textContent = `Built ${state.meta.generated || ''} · ${total.toLocaleString()} headwords · ${idioms.toLocaleString()} idioms and expressions · ${phrasal.toLocaleString()} phrasal verbs · ${proverbs.toLocaleString()} proverbs · ${defining.toLocaleString()} defining words.`;
     }
   }
 
