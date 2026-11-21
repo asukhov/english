@@ -1258,6 +1258,8 @@ class Lexicon:
                 ent["ipa_us"] = cached[1]
         for ent in entries:
             key = ent["key"]
+            ent["ipa_uk"] = normalize_ipa(ent["ipa_uk"]) if ent["ipa_uk"] else ""
+            ent["ipa_us"] = normalize_ipa(ent["ipa_us"]) if ent["ipa_us"] else ""
             ent["ipa"] = ent["ipa_us"] or ent["ipa_uk"] or ""
             had_dict = bool((self.ipa_uk.get(key) or self.ipa_us.get(key)))
             had_kaikki = key in self.kaikki_ipa

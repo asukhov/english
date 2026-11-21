@@ -68,10 +68,33 @@ class Espeak:
         return normalize_ipa(raw)
 
 
+# Learner-dictionary broad transcription uses r/l and ordinary vowel letters.
+# eSpeak and some IPA sources use turned or barred symbols (ɹ, ɐ, ɫ, ᵻ) which
+# look like mirrored letters to many readers and are hard to type/search.
+LEARNER_IPA = {
+    "ɹ": "r",
+    "ɐ": "ə",
+    "ɾ": "t",
+    "ɫ": "l",
+    "ᵻ": "ɪ",
+    "ɨ": "ɪ",
+    "ɵ": "ə",
+    "ɚ": "ər",
+    "ɝ": "ɜːr",
+    "ɡ": "g",
+    "ʧ": "tʃ",
+    "ʤ": "dʒ",
+    "ʦ": "ts",
+    "ʣ": "dz",
+}
+
+
 def normalize_ipa(raw: str) -> str:
     """Normalise an IPA string and wrap it in forward slashes."""
     s = (raw or "").strip()
     s = s.replace("\u200b", "").replace("\ufeff", "")
+    for old, new in LEARNER_IPA.items():
+        s = s.replace(old, new)
     s = re.sub(r"\s+", " ", s)
     s = s.strip("/[] ")
     s = s.strip()
