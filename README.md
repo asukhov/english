@@ -8,14 +8,15 @@ There is no runtime build step, no package manager, no analytics, and no externa
 
 | Section | Contents |
 | --- | --- |
-| Dictionary | **113,295 headwords** with IPA, word class, CEFR level, grammar code, definitions, examples, synonyms, and source notes |
+| Dictionary | **128,183 headwords** with IPA, word class, CEFR level, grammar code, definitions, examples, synonyms, and source notes |
 | Defining 3,000 | A curated core of **3,000** high-frequency words for learner-friendly explanation |
-| Idioms & expressions | **30,028** idioms, proverbs, phrasal expressions, and fixed phrases |
-| Phrasal verbs | **1,788** entries, including separability and particle notes |
+| Idioms & expressions | **45,000** idioms, proverbs, phrasal expressions, and fixed phrases (19,218 from Wiktionary sources, 25,782 fixed expressions from WordNet) |
+| Phrasal verbs | **5,069** entries, including separability and particle notes |
+| Proverbs | **1,060** entries |
 | Illustrated | **14 labelled diagrams** with **126 parts**: umbrella, bicycle, car, house, head, hand, tree, flower, laptop, guitar, shoe, bottle, camera, clock |
-| B2 / C1 / C2 | **8,292 / 13,065 / 86,762** entries by CEFR level |
+| B2 / C1 / C2 | **11,388 / 15,898 / 95,645** entries by CEFR level |
 | Slang | **234** curated informal entries |
-| Strong language | **229** labelled swear words and insults (no group slurs) |
+| Strong language | **671** labelled strong or offensive expressions |
 | Numbers & units | Numbers, ordinals, dates, times, measurement units, and a unit converter |
 | Pronunciation | IPA chart, stress, connected speech, UK/US differences, minimal pairs |
 | Grammar | **12 topic groups, 38 sections, 103 rules** covering tenses, articles, modals, conditionals, passive, reported speech, at/on/in, clauses, punctuation and common mistakes |

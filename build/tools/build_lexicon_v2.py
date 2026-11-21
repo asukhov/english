@@ -45,7 +45,7 @@ from pronounce import Espeak, normalize_ipa, strip_ipa  # noqa: E402
 
 CHUNK_SIZE = 1000
 DEFINING_TARGET = 3000
-IDIOM_TARGET = 30500
+IDIOM_TARGET = 45000
 TOTAL_TARGET = 105000
 
 FUNCTION_WORDS = set(
@@ -222,7 +222,7 @@ TAXONOMY_WORDS = {
 }
 
 BAD_CHARS = re.compile(r"[\x00-\x1f\t\n\r]")
-WORD_OK = re.compile(r"^[a-z0-9][a-z0-9'*? .\-()/&+]*$", re.I)
+WORD_OK = re.compile(r"^[a-z0-9][a-z0-9'*? .\-()/&+,;:]*$", re.I)
 
 
 def read_json(path: Path):
@@ -342,14 +342,14 @@ def good_def(text: str) -> bool:
 
 
 def good_lemma(key: str) -> bool:
-    if not key or len(key) > 64:
+    if not key or len(key) > 110:
         return False
     if not re.search(r"[a-z]", key):
         return False
     if re.search(r"\d", key):
         # Numerals, dates, and model numbers are covered by the Numbers tab.
         return False
-    if key.count(" ") > 5:
+    if key.count(" ") > 16:
         return False
     if not WORD_OK.match(key):
         return False
@@ -440,6 +440,7 @@ class Lexicon:
         self.kaikki_ipa: dict[str, str] = {}
         self.idiom_wiktionary = 0
         self.idiom_wordnet = 0
+        self.idiom_total = 0
 
     def entry(self, word: str, key: str | None = None) -> dict:
         key = normalize_key(key or word)
@@ -488,6 +489,17 @@ class Lexicon:
                 continue
             if v not in ent["variants"] and len(ent["variants"]) < 12:
                 ent["variants"].append(v)
+
+    def mark_idiom(self, ent: dict, source: str) -> bool:
+        if "idiom" in ent["themes"]:
+            return False
+        self.add_theme(ent, "idiom")
+        self.idiom_total += 1
+        if source == "wordnet":
+            self.idiom_wordnet += 1
+        else:
+            self.idiom_wiktionary += 1
+        return True
 
     def add_sense(self, ent: dict, sense: dict) -> None:
         if not sense.get("defs"):
@@ -837,7 +849,11 @@ class Lexicon:
             if "offensive" in tags or "vulgar" in tags:
                 ent["register"] = "offensive"
                 self.add_theme(ent, "offensive")
-            self.add_theme(ent, "idiom" if mark_idiom else "phrase")
+            if mark_idiom:
+                if self.mark_idiom(ent, "wiktionary"):
+                    idiom_count += 1
+            else:
+                self.add_theme(ent, "phrase")
             if pos == "proverb" and mark_idiom:
                 self.add_theme(ent, "proverb")
             self.add_sense(
@@ -859,10 +875,216 @@ class Lexicon:
                 self.kaikki_ipa[key] = ipa
                 ent["ipa"] = ipa
             added += 1
-            if mark_idiom:
-                self.idiom_wiktionary += 1
-                idiom_count += 1
         print(f"kaikki added {added}, explicit idioms {idiom_count}", flush=True)
+
+    def add_kaikki_idioms(self) -> None:
+        """Add the full Kaikki English 'idiomatic' tag extract.
+
+        This is the broadest single source for idioms, proverbs and phrasal
+        verbs that Wiktionary marks as idiomatic.  It includes inflected forms
+        such as "killed two birds with one stone" for search.
+        """
+        path = CACHE / "kaikki" / "tag-idiomatic.jsonl"
+        if not path.exists():
+            return
+        groups: dict[str, list[dict]] = {}
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                try:
+                    rec = json.loads(line)
+                except Exception:
+                    continue
+                word = clean_text(rec.get("word", ""))
+                if word:
+                    groups.setdefault(word, []).append(rec)
+        allowed_labels = {
+            "idiomatic", "informal", "formal", "slang", "vulgar", "offensive",
+            "colloquial", "dated", "archaic", "obsolete", "rare", "humorous",
+            "figurative", "US", "UK", "Australia", "Canada", "Ireland",
+            "Scotland", "Internet", "business", "law", "medicine", "military",
+            "nautical", "sports", "politics", "religion", "literary", "poetic",
+            "derogatory", "euphemistic", "childish",
+        }
+        particles = {"up", "down", "out", "off", "on", "in", "over", "away", "back", "through", "around", "about", "along", "across", "apart", "aside", "forth", "together"}
+        added = 0
+        marked = 0
+        for word, recs in groups.items():
+            key = normalize_key(word)
+            if not good_lemma(key) or not phrase_is_useful(key):
+                continue
+            if " " not in key and "-" not in key:
+                continue
+            all_defs = []
+            forms = []
+            all_syns = []
+            all_ants = []
+            tags: set[str] = set()
+            ipa = ""
+            has_proverb = any(r.get("pos") == "proverb" for r in recs)
+            has_verb = any(r.get("pos") == "verb" for r in recs)
+            last_word = key.split()[-1] if key.split() else ""
+            is_phrasal = has_verb and last_word in particles
+            for rec in recs:
+                for form in rec.get("forms", []) or []:
+                    f = clean_text(form.get("form", ""))
+                    if f and f not in forms:
+                        forms.append(f)
+                for sound in rec.get("sounds", []) or []:
+                    raw = sound.get("ipa")
+                    if raw and not ipa:
+                        ipa = normalize_ipa(raw.split(",")[0])
+                for sense in rec.get("senses", []) or []:
+                    for t in sense.get("tags", []) or []:
+                        tags.add(str(t).lower())
+                    raw_glosses = sense.get("raw_glosses") or []
+                    glosses = sense.get("glosses") or []
+                    text = clean_text(glosses[0] if glosses else (raw_glosses[0] if raw_glosses else ""))
+                    if not good_def(text):
+                        continue
+                    if any(text.lower().startswith(x) for x in ("alternative form of", "alternative spelling of", "plural of", "initialism of", "abbreviation of", "acronym of", "ellipsis of", "short for", "clipping of", "contraction of", "used other than figuratively")):
+                        continue
+                    labels = []
+                    for t in sense.get("tags", []) or []:
+                        t = str(t).lower()
+                        if t in {x.lower() for x in allowed_labels}:
+                            labels.append(t)
+                    if raw_glosses:
+                        m = re.match(r"^\(([^)]{2,80})\)", raw_glosses[0])
+                        if m:
+                            for part in m.group(1).split(","):
+                                p = part.strip().lower()
+                                if p in {x.lower() for x in allowed_labels} and p not in labels:
+                                    labels.append(p)
+                    ex = ""
+                    examples = sense.get("examples") or []
+                    if examples:
+                        ex = clean_text(examples[0].get("text", ""))
+                    all_defs.append({"text": text, "example": ex, "labels": labels[:4]})
+                    for syn in sense.get("synonyms", []) or []:
+                        s = clean_text(syn.get("word", "") if isinstance(syn, dict) else str(syn))
+                        if s and s not in all_syns:
+                            all_syns.append(s)
+                    for ant in sense.get("antonyms", []) or []:
+                        a = clean_text(ant.get("word", "") if isinstance(ant, dict) else str(ant))
+                        if a and a not in all_ants:
+                            all_ants.append(a)
+                    if len(all_defs) >= 4:
+                        break
+                if len(all_defs) >= 4:
+                    break
+            if not all_defs:
+                continue
+            ent = self.entry(word, key)
+            already = bool(ent["senses"])
+            if has_proverb:
+                pos = "proverb"
+                self.add_theme(ent, "proverb")
+            elif is_phrasal:
+                pos = "phrasal verb"
+                self.add_theme(ent, "phrasal")
+            else:
+                pos = "idiom"
+            if not already:
+                ent["pos"] = pos
+                rank = phrase_rank(key, self.freq)
+                ent["level"] = phrase_level(rank)
+                ent["frequency"] = rank
+            register = "informal" if ("slang" in tags or "informal" in tags or "colloquial" in tags) else "neutral"
+            if {"vulgar", "offensive", "derogatory"} & tags:
+                register = "offensive"
+                self.add_theme(ent, "offensive")
+            self.mark_idiom(ent, "wiktionary")
+            self.add_sense(
+                ent,
+                {
+                    "pos": pos,
+                    "level": ent["level"],
+                    "defs": all_defs,
+                    "synonyms": all_syns[:8],
+                    "antonyms": all_ants[:8],
+                    "grammar": pos_code(pos),
+                    "register": register,
+                    "note": "",
+                },
+            )
+            self.add_variant(ent, *forms[:14])
+            self.add_source(ent, "enwikt")
+            if ipa:
+                self.kaikki_ipa[key] = ipa
+                ent["ipa"] = ipa
+            added += 1
+            marked += 1
+        print(f"kaikki idiomatic added {added}, marked {marked}", flush=True)
+
+    def add_kaikki_proverbs(self) -> None:
+        path = CACHE / "kaikki" / "pos-proverb.jsonl"
+        if not path.exists():
+            return
+        groups: dict[str, list[dict]] = {}
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                try:
+                    rec = json.loads(line)
+                except Exception:
+                    continue
+                word = clean_text(rec.get("word", ""))
+                if word:
+                    groups.setdefault(word, []).append(rec)
+        added = 0
+        for word, recs in groups.items():
+            key = normalize_key(word)
+            if not good_lemma(key) or (" " not in key and "-" not in key):
+                continue
+            defs = []
+            forms = []
+            for rec in recs:
+                for form in rec.get("forms", []) or []:
+                    f = clean_text(form.get("form", ""))
+                    if f and f not in forms:
+                        forms.append(f)
+                for sense in rec.get("senses", []) or []:
+                    raw_glosses = sense.get("raw_glosses") or []
+                    glosses = sense.get("glosses") or []
+                    text = clean_text(glosses[0] if glosses else (raw_glosses[0] if raw_glosses else ""))
+                    if not good_def(text):
+                        continue
+                    if text.lower().startswith(("alternative form of", "alternative spelling of", "ellipsis of", "short for", "used other than figuratively")):
+                        continue
+                    examples = sense.get("examples") or []
+                    ex = clean_text(examples[0].get("text", "")) if examples else ""
+                    defs.append({"text": text, "example": ex, "labels": [str(t).lower() for t in sense.get("tags", [])][:4]})
+                    if len(defs) >= 4:
+                        break
+                if len(defs) >= 4:
+                    break
+            if not defs:
+                continue
+            ent = self.entry(word, key)
+            already = bool(ent["senses"])
+            if not already:
+                ent["pos"] = "proverb"
+                rank = phrase_rank(key, self.freq)
+                ent["level"] = phrase_level(rank)
+                ent["frequency"] = rank
+            self.mark_idiom(ent, "wiktionary")
+            self.add_theme(ent, "proverb")
+            self.add_sense(
+                ent,
+                {
+                    "pos": "proverb",
+                    "level": ent["level"],
+                    "defs": defs,
+                    "synonyms": [],
+                    "antonyms": [],
+                    "grammar": pos_code("proverb"),
+                    "register": "neutral",
+                    "note": "",
+                },
+            )
+            self.add_variant(ent, *forms[:10])
+            self.add_source(ent, "enwikt")
+            added += 1
+        print(f"kaikki proverbs added {added}", flush=True)
 
     def add_idioms(self, wikt_pages: dict) -> None:
         cache = CACHE / "idiom_pages.jsonl"
@@ -908,6 +1130,7 @@ class Lexicon:
                     continue
                 key = normalize_key(title)
                 ent = self.entry(title, key)
+                already = bool(ent["senses"])
                 if "phrasal verbs" in cats:
                     pos = "phrasal verb"
                     self.add_theme(ent, "phrasal")
@@ -919,11 +1142,12 @@ class Lexicon:
                     self.add_theme(ent, "euphemism")
                 else:
                     pos = "idiom"
-                ent["pos"] = pos
-                rank = phrase_rank(key, self.freq)
-                ent["level"] = phrase_level(rank)
-                ent["frequency"] = rank
-                self.add_theme(ent, "idiom")
+                if not already:
+                    ent["pos"] = pos
+                    rank = phrase_rank(key, self.freq)
+                    ent["level"] = phrase_level(rank)
+                    ent["frequency"] = rank
+                self.mark_idiom(ent, "wiktionary")
                 self.add_sense(
                     ent,
                     {
@@ -938,10 +1162,7 @@ class Lexicon:
                     },
                 )
                 self.add_source(ent, "enwikt", "ipa")
-                self.idiom_wiktionary += 1
                 kept += 1
-                if kept >= 26000:
-                    break
         print(f"idioms: parsed {parsed}, kept {kept}", flush=True)
 
     def add_wordnet_single(self) -> None:
@@ -1087,13 +1308,13 @@ class Lexicon:
         return out
 
     def add_wordnet_idioms(self) -> None:
-        if self.idiom_wiktionary >= IDIOM_TARGET:
+        if self.idiom_total >= IDIOM_TARGET:
             return
-        need = IDIOM_TARGET - self.idiom_wiktionary
+        need = IDIOM_TARGET - self.idiom_total
         candidates = self.idiom_candidates()
         print(f"wordnet idiom candidates {len(candidates)}, need {need}", flush=True)
         for score, key in candidates:
-            if self.idiom_wiktionary >= IDIOM_TARGET:
+            if self.idiom_total >= IDIOM_TARGET:
                 break
             existing = self.entries.get(key)
             if existing is not None and not existing["senses"]:
@@ -1119,10 +1340,8 @@ class Lexicon:
                 ent["level"] = level
                 for sense in ent["senses"]:
                     sense["level"] = level
-            self.add_theme(ent, "idiom")
-            self.idiom_wordnet += 1
-            self.idiom_wiktionary += 1
-        print(f"idioms total {self.idiom_wiktionary} (wordnet {self.idiom_wordnet})", flush=True)
+            self.mark_idiom(ent, "wordnet")
+        print(f"idioms total {self.idiom_total} (wordnet {self.idiom_wordnet})", flush=True)
 
     def add_common_multiword(self) -> None:
         # A broad set of multiword terms gives the dictionary real depth beyond
@@ -1411,7 +1630,7 @@ class Lexicon:
             "total": len(entries),
             "defining": theme_counts.get("defining", 0),
             "idioms": theme_counts.get("idiom", 0),
-            "idiomsWiktionary": self.idiom_wiktionary - self.idiom_wordnet,
+            "idiomsWiktionary": self.idiom_wiktionary,
             "idiomsWordNet": self.idiom_wordnet,
             "levels": {l: level_counts.get(l, 0) for l in LEVELS},
             "themes": {
@@ -1468,6 +1687,10 @@ def main() -> None:
     lex.add_cefr(cefr, wikt_pages)
     print("wiktionary phrases...", flush=True)
     lex.add_kaikki()
+    print("wiktionary idiomatic tag...", flush=True)
+    lex.add_kaikki_idioms()
+    print("wiktionary proverbs...", flush=True)
+    lex.add_kaikki_proverbs()
     print("idioms...", flush=True)
     lex.add_idioms(wikt_pages)
     print("wordnet single...", flush=True)

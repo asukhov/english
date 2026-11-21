@@ -11,7 +11,7 @@ The website in the repository root is complete and deployable without this folde
   - CEFR-J `cefrj-vocab.csv` and Octanove `octanove-c1c2.csv`
   - `ipa-en-UK.txt`, `ipa-en-US.txt`
   - `freq50k.txt`
-  - optional: Kaikki phrase extracts (`pos-phrase.jsonl`, `pos-proverb.jsonl`, `pos-prep_phrase.jsonl`) in `build/cache/kaikki/`
+  - Kaikki extracts in `build/cache/kaikki/`: `pos-phrase.jsonl`, `pos-proverb.jsonl`, `pos-prep_phrase.jsonl`, and `tag-idiomatic.jsonl` (the full English idiomatic-tag extract)
 - eSpeak NG extracted at `build/tools/espeak/extract1492/` for the rare-word IPA fallback. It is used only at build time and is not part of the site.
 
 The expected raw layout is `build/raw/` as consumed by `sources.py`.
@@ -20,6 +20,7 @@ The expected raw layout is `build/raw/` as consumed by `sources.py`.
 
 ```bash
 python build/tools/fetch_idioms.py         # optional; populates build/cache
+python build/tools/fetch_phrasal.py        # optional; remaining phrasal-verb pages
 python build/tools/build_lexicon_v2.py     # writes build/output/data/
 python build/tools/gen_grammar.py          # writes data/grammar.json
 python build/tools/gen_illustrations.py    # writes data/illustrations.json

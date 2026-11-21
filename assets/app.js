@@ -2,7 +2,7 @@
   'use strict';
 
   const DATA = 'data';
-  const DATA_VERSION = '2026-11-22.3';
+  const DATA_VERSION = '2026-11-22.6';
   const PER_PAGE = 30;
 
   const TAB_INFO = {
