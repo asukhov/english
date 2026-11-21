@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#173f35">
+  <meta name="description" content="A self-contained English-to-English learner's dictionary with defining vocabulary, CEFR levels, IPA, phrasal verbs, slang, and reference tools.">
+  <title>English Lexicon</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/fraunces-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="app-shell">
+    <header class="hero">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="hero-inner">
+        <div class="brand-block">
+          <p class="eyebrow">Self-contained English reference</p>
+          <h1 class="brand"><span class="brand-mark" aria-hidden="true">Aa</span>English Lexicon</h1>
+          <p class="lede">A state-of-the-art English-to-English dictionary built around a controlled defining vocabulary, clear grammar codes, IPA pronunciation, and focused study tabs.</p>
+        </div>
+        <div class="hero-stats" id="heroStats" aria-label="Dictionary statistics">
+          <div class="stat"><span class="stat-value" id="statTotal">—</span><span class="stat-label">Entries</span></div>
+          <div class="stat"><span class="stat-value" id="statDefining">—</span><span class="stat-label">Defining vocabulary</span></div>
+          <div class="stat"><span class="stat-value" id="statLevels">—</span><span class="stat-label">CEFR coverage</span></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="toolbar-wrap">
+      <div class="toolbar">
+        <div class="search-panel">
+          <label class="search-label" for="searchInput">Search the dictionary</label>
+          <div class="search-row">
+            <div class="search-input-wrap">
+              <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 3a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15Zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11Zm8.78 12.72 2.5 2.5-1.56 1.56-2.5-2.5 1.56-1.56Z"/></svg>
+              <input id="searchInput" class="search-input" type="search" autocomplete="off" spellcheck="false" placeholder="Search words, phrases, wildcards like *light, th?nk, run*" aria-describedby="searchHelp">
+              <button id="clearSearch" class="clear-btn" type="button" aria-label="Clear search" hidden>&times;</button>
+            </div>
+            <button id="searchBtn" class="btn btn-primary" type="button">Search</button>
+          </div>
+          <p id="searchHelp" class="search-help">Smart search supports wildcards: <code>*</code> for any letters, <code>?</code> for one letter. Try <code>*tion</code>, <code>col?r</code>, or <code>look*</code>.</p>
+        </div>
+        <div class="toolbar-controls">
+          <label class="control">
+            <span>Sort</span>
+            <select id="sortSelect">
+              <option value="relevance">Relevance</option>
+              <option value="alpha">A–Z</option>
+              <option value="level">CEFR level</option>
+              <option value="frequency">Common first</option>
+            </select>
+          </label>
+          <label class="control">
+            <span>View</span>
+            <select id="densitySelect">
+              <option value="comfortable">Comfortable</option>
+              <option value="compact">Compact</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <nav class="tabs" aria-label="Dictionary sections">
+        <div class="tabs-scroll" id="tabsScroll" role="tablist" aria-label="Sections">
+          <button class="tab active" role="tab" aria-selected="true" aria-controls="panel-dictionary" id="tab-dictionary" data-tab="dictionary"><span class="tab-icon">📚</span><span>Dictionary</span><span class="tab-count" id="count-dictionary"></span></button>
+          <button class="tab" role="tab" aria-selected="false" aria-controls="panel-defining" id="tab-defining" data-tab="defining"><span class="tab-icon">🧭</span><span>Defining Vocabulary</span><span class="tab-count" id="count-defining"></span></button>
+          <button class="tab" role="tab" aria-selected="false" aria-controls="panel-numbers" id="tab-numbers" data-tab="numbers"><span class="tab-icon">🔢</span><span>Numbers &amp; Units</span></button>
+          <button class="tab" role="tab" aria-selected="false" aria-controls="panel-phrasal" id="tab-phrasal" data-tab="phrasal"><span class="tab-icon">🔗</span><span>Phrasal Verbs</span><span class="tab-count" id="count-phrasal"></span></button>
+          <button class="tab" role="tab" aria-selected="false" aria-controls="panel-b2" id="tab-b2" data-tab="b2"><span class="tab-icon">B2</span><span>B2 Words</span><span class="tab-count" id="count-b2"></span></button>
+          <button class="tab" role="tab" aria-selected="false" aria-controls="panel-c1" id="tab-c1" data-tab="c1"><span class="tab-icon">C1</span><span>C1 Words</span><span class="tab-count" id="count-c1"></span></button>
+          <button class="tab" role="tab" aria-selected="false" aria-controls="panel-c2" id="tab-c2" data-tab="c2"><span class="tab-icon">C2</span><span>C2 Words</span><span class="tab-count" id="count-c2"></span></button>
+          <button class="tab" role="tab" aria-selected="false" aria-controls="panel-slang" id="tab-slang" data-tab="slang"><span class="tab-icon">💬</span><span>Slang</span><span class="tab-count" id="count-slang"></span></button>
+          <button class="tab" role="tab" aria-selected="false" aria-controls="panel-offensive" id="tab-offensive" data-tab="offensive"><span class="tab-icon">⚠️</span><span>Strong Language</span><span class="tab-count" id="count-offensive"></span></button>
+          <button class="tab" role="tab" aria-selected="false" aria-controls="panel-pronunciation" id="tab-pronunciation" data-tab="pronunciation"><span class="tab-icon">🔊</span><span>Pronunciation</span></button>
+          <button class="tab" role="tab" aria-selected="false" aria-controls="panel-grammar" id="tab-grammar" data-tab="grammar"><span class="tab-icon">✍️</span><span>Grammar Codes</span></button>
+        </div>
+      </nav>
+    </div>
+
+    <main id="main" class="main">
+      <section id="panel-dictionary" class="panel active" role="tabpanel" aria-labelledby="tab-dictionary" data-panel="dictionary"></section>
+      <section id="panel-defining" class="panel" role="tabpanel" aria-labelledby="tab-defining" data-panel="defining" hidden></section>
+      <section id="panel-numbers" class="panel" role="tabpanel" aria-labelledby="tab-numbers" data-panel="numbers" hidden></section>
+      <section id="panel-phrasal" class="panel" role="tabpanel" aria-labelledby="tab-phrasal" data-panel="phrasal" hidden></section>
+      <section id="panel-b2" class="panel" role="tabpanel" aria-labelledby="tab-b2" data-panel="b2" hidden></section>
+      <section id="panel-c1" class="panel" role="tabpanel" aria-labelledby="tab-c1" data-panel="c1" hidden></section>
+      <section id="panel-c2" class="panel" role="tabpanel" aria-labelledby="tab-c2" data-panel="c2" hidden></section>
+      <section id="panel-slang" class="panel" role="tabpanel" aria-labelledby="tab-slang" data-panel="slang" hidden></section>
+      <section id="panel-offensive" class="panel" role="tabpanel" aria-labelledby="tab-offensive" data-panel="offensive" hidden></section>
+      <section id="panel-pronunciation" class="panel" role="tabpanel" aria-labelledby="tab-pronunciation" data-panel="pronunciation" hidden></section>
+      <section id="panel-grammar" class="panel" role="tabpanel" aria-labelledby="tab-grammar" data-panel="grammar" hidden></section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-grid">
+        <div>
+          <h2>About this project</h2>
+          <p>English Lexicon is a static, self-contained learning dictionary designed for GitHub Pages. It uses open data sources and original UI/content packaging. Definitions are primarily learner-friendly Simple English Wiktionary entries, with WordNet fallback.</p>
+        </div>
+        <div>
+          <h2>Sources &amp; licenses</h2>
+          <ul class="footer-list">
+            <li>Simple English Wiktionary dump — CC BY-SA 4.0</li>
+            <li>WordNet 3.0 — Princeton WordNet License</li>
+            <li>Open IPA Dict — MIT</li>
+            <li>CEFR-J / Octanove profiles — attribution in Credits</li>
+            <li>Fonts: Fraunces &amp; Inter — SIL Open Font License</li>
+          </ul>
+        </div>
+        <div>
+          <h2>Credits</h2>
+          <p>Built as a static educational project. No external runtime dependencies. All assets are stored locally in this repository.</p>
+          <p><a href="licenses/THIRD-PARTY.txt" class="footer-link">View third-party notices</a></p>
+        </div>
+      </div>
+    </footer>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+  <script src="assets/app.js" defer></script>
+</body>
+</html>

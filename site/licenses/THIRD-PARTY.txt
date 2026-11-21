@@ -1,0 +1,41 @@
+English Lexicon - Third-party notices
+
+This project is a self-contained static website. It includes or derives data from the
+following open sources. The project UI/code and original curated content are created for
+this repository; third-party source licenses remain with their respective owners.
+
+1) Simple English Wiktionary content dump
+   - Source: https://dumps.wikimedia.org/simplewiktionary/
+   - License: Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
+   - Use in this project: learner-friendly definitions/examples/labels extracted and
+     normalized into JSON for dictionary entries.
+
+2) WordNet 3.0
+   - Source: Princeton WordNet
+   - License: WordNet 3.0 License (see WORDNET-LICENSE.txt)
+   - Use in this project: fallback definitions, examples, and synonym data.
+
+3) Open IPA Dict (ipa-dict)
+   - Source: https://github.com/open-dict-data/ipa-dict
+   - License: MIT (see IPA-DICT-LICENSE.txt)
+   - Use in this project: UK/US IPA pronunciation data.
+
+4) CEFR-J Vocabulary Profile 1.5
+   - Source: https://github.com/openlanguageprofiles/olp-en-cefrj
+   - Terms: CEFR-J data may be used for research/commercial purposes with citation;
+     copyright belongs to Tono Laboratory at TUFS. See source README for details.
+   - Use in this project: CEFR level labels and vocabulary selection signals.
+
+5) Octanove Vocabulary Profile C1/C2 1.0
+   - Source: https://github.com/openlanguageprofiles/olp-en-cefrj
+   - License: CC BY-SA 4.0
+   - Use in this project: C1/C2 level labels and vocabulary selection signals.
+
+6) Fraunces font
+   - SIL Open Font License 1.1 (see OFL-Fraunces.txt)
+
+7) Inter font
+   - SIL Open Font License 1.1 (see OFL-Inter.txt)
+
+No proprietary dictionary text from Cambridge, Macmillan, Oxford, Longman, or
+Merriam-Webster was intentionally copied into this project.
