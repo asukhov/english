@@ -1,5 +1,5 @@
 /* Lexicon service worker: offline shell + cached dictionary data. */
-const VERSION = 'lexicon-v12';
+const VERSION = 'lexicon-v14';
 const SHELL = [
   './',
   './index.html',
@@ -32,14 +32,15 @@ self.addEventListener('fetch', (event) => {
   if (isData) {
     event.respondWith(
       caches.open(VERSION).then(async (cache) => {
-        const cached = await cache.match(request);
-        const network = fetch(request)
-          .then((response) => {
-            if (response && response.ok) cache.put(request, response.clone());
-            return response;
-          })
-          .catch(() => cached);
-        return cached || network;
+        try {
+          const response = await fetch(request, { cache: 'no-store' });
+          if (response && response.ok) cache.put(request, response.clone());
+          return response;
+        } catch (error) {
+          const cached = await cache.match(request);
+          if (cached) return cached;
+          throw error;
+        }
       })
     );
     return;

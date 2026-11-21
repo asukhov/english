@@ -84,6 +84,8 @@ High-level pipeline:
 5. Select the 3,000-word defining vocabulary.
 6. Write compact index and 1,000-entry chunks.
 
+After rebuilding, bump `DATA_VERSION` in `assets/app.js` and `VERSION` in `sw.js`. The data version is appended to every data request so a browser cannot mix a new app shell with an older cached index, metadata file, or chunk set.
+
 ## Sources and licences
 
 Definitions, examples, and phrase data are derived from open sources. See `licenses/THIRD-PARTY.txt` for the full notices.

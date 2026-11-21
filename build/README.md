@@ -23,7 +23,7 @@ python build/tools/fetch_idioms.py       # optional; populates build/cache
 python build/tools/build_lexicon_v2.py   # writes build/output/data/
 ```
 
-Copy `build/output/data/` to `data/` after a rebuild, then bump the service-worker `VERSION` in `sw.js` so browsers refresh their cached data.
+Copy `build/output/data/` to `data/` after a rebuild, then bump both `DATA_VERSION` in `assets/app.js` and `VERSION` in `sw.js` so browsers cannot mix an old cached index with a new app shell.
 
 ## Notes
 

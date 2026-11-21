@@ -2,6 +2,7 @@
   'use strict';
 
   const DATA = 'data';
+  const DATA_VERSION = '2026-11-21.113295';
   const PER_PAGE = 30;
 
   const TAB_INFO = {
@@ -163,10 +164,31 @@
     toast.timer = setTimeout(() => el.toast.classList.remove('show'), 2200);
   }
 
+  function versioned(path) {
+    return `${path}${path.includes('?') ? '&' : '?'}v=${encodeURIComponent(DATA_VERSION)}`;
+  }
+
   async function getJSON(path) {
-    const response = await fetch(path, { cache: 'force-cache' });
+    const response = await fetch(versioned(path), { cache: 'no-cache' });
     if (!response.ok) throw new Error(`Could not load ${path} (${response.status})`);
     return response.json();
+  }
+
+  async function resetLocalCaches() {
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+      }
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((reg) => reg.unregister()));
+      }
+      location.reload();
+    } catch (error) {
+      console.error(error);
+      location.reload();
+    }
   }
 
   function levelRank(level) {
@@ -355,17 +377,17 @@
       <div class="layout">
         <div class="results-card" aria-label="Results">
           <div class="results-toolbar">${renderSort()}</div>
-          <ul class="results-list" id="results-list">
+          <ul class="results-list" id="results-list-${tab}">
             ${pageRows.length ? pageRows.map((index) => renderResultRow(index, state.selected, state.query)).join('') : `<li class="empty-state"><div><h3>No matches</h3><p>Try a different spelling, remove wildcards, or search the full dictionary.</p><button class="text-button" type="button" data-action="search-all">Search all dictionary</button></div></li>`}
           </ul>
           ${renderPagination(pages, page)}
         </div>
-        <article class="detail-card" id="detail-card" aria-live="polite"></article>
+        <article class="detail-card" id="detail-card-${tab}" aria-live="polite"></article>
       </div>`;
 
     wirePanelEvents(panel, tab);
-    if (state.selected != null) await renderDetail(state.selected, requestId);
-    else $('#detail-card').innerHTML = emptyDetail();
+    if (state.selected != null) await renderDetail(state.selected, requestId, tab);
+    else $(`#detail-card-${tab}`).innerHTML = emptyDetail();
   }
 
   function wirePanelEvents(panel, tab) {
@@ -408,8 +430,8 @@
     </div>`;
   }
 
-  async function renderDetail(index, requestId = state.requestId) {
-    const detail = $('#detail-card');
+  async function renderDetail(index, requestId = state.requestId, tab = state.tab) {
+    const detail = $(`#detail-card-${tab}`) || $('#detail-card');
     if (!detail) return;
     detail.innerHTML = `<div class="loading-state">Loading entry…</div>`;
     const row = rowAt(index);
@@ -435,10 +457,10 @@
     $$('.result-row', panel).forEach((button) => {
       button.classList.toggle('active', Number(button.dataset.index) === index);
     });
-    renderDetail(index);
+    renderDetail(index, state.requestId, tab);
     if (window.matchMedia('(max-width: 980px)').matches) {
       document.body.classList.add('detail-open');
-      const detail = $('#detail-card');
+      const detail = $(`#detail-card-${tab}`);
       if (detail) detail.scrollTop = 0;
     }
   }
@@ -899,20 +921,23 @@
 
   function setAbout() {
     if (!state.meta || !el.aboutStats) return;
+    const total = Number(state.meta.total) || 0;
+    const idioms = Number(state.meta.idioms) || 0;
+    const defining = Number(state.meta.defining) || 0;
     const values = [
-      ['Entries', state.meta.total],
-      ['Idioms & expressions', state.meta.idioms],
-      ['Defining vocabulary', state.meta.defining],
+      ['Entries', total],
+      ['Idioms & expressions', idioms],
+      ['Defining vocabulary', defining],
       ['IPA coverage', '100%'],
     ];
     el.aboutStats.innerHTML = values.map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${typeof value === 'number' ? value.toLocaleString() : esc(value)}</dd></div>`).join('');
     if (el.aboutMeta) {
-      el.aboutMeta.textContent = `Built ${state.meta.generated || ''} · ${state.meta.total.toLocaleString()} headwords · ${state.meta.idioms.toLocaleString()} idioms and expressions · ${state.meta.defining.toLocaleString()} defining words.`;
+      el.aboutMeta.textContent = `Built ${state.meta.generated || ''} · ${total.toLocaleString()} headwords · ${idioms.toLocaleString()} idioms and expressions · ${defining.toLocaleString()} defining words.`;
     }
   }
 
   async function loadIndex() {
-    const response = await fetch(`${DATA}/index.tsv`, { cache: 'force-cache' });
+    const response = await fetch(versioned(`${DATA}/index.tsv`), { cache: 'no-cache' });
     if (!response.ok) throw new Error(`Could not load the search index (${response.status})`);
     const text = await response.text();
     const lines = text.split('\n');
@@ -974,7 +999,14 @@
       state.chunks = chunks;
       state.chunkSize = chunks.chunkSize || 1000;
       await loadIndex();
+      if (!Number.isFinite(meta.total) || !Number.isFinite(meta.idioms) || !Number.isFinite(meta.defining)) {
+        throw new Error('The cached dictionary metadata is outdated.');
+      }
+      if (meta.total !== chunks.total || state.total !== meta.total) {
+        throw new Error(`The cached dictionary files do not match (metadata ${meta.total}, chunks ${chunks.total}, index ${state.total}).`);
+      }
       setAbout();
+      sessionStorage.removeItem('lexicon-recovery');
       const hash = location.hash.replace('#', '');
       if (TAB_INFO[hash]) state.tab = hash;
       state.sort = TAB_INFO[state.tab].defaultSort || 'relevance';
@@ -982,7 +1014,15 @@
       await renderCurrentTab();
     } catch (error) {
       console.error(error);
-      $('#panel-dictionary').innerHTML = `<div class="empty-state"><div><h3>Could not load the dictionary</h3><p>${esc(error.message)}</p><p>Make sure the <code>data/</code> folder is next to <code>index.html</code>.</p></div></div>`;
+      const recoverable = /cached dictionary|outdated|do not match/i.test(error.message);
+      if (recoverable && navigator.onLine && !sessionStorage.getItem('lexicon-recovery')) {
+        sessionStorage.setItem('lexicon-recovery', '1');
+        await resetLocalCaches();
+        return;
+      }
+      $('#panel-dictionary').innerHTML = `<div class="empty-state"><div><h3>Could not load the dictionary</h3><p>${esc(error.message)}</p><p>The browser may be holding an older cached copy of the dictionary. Clear it and reload once.</p><button class="text-button" type="button" id="resetCaches">Clear cached data and reload</button></div></div>`;
+      const reset = $('#resetCaches');
+      if (reset) reset.addEventListener('click', resetLocalCaches);
     }
   }
 
